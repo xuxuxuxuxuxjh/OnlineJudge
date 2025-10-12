@@ -73,6 +73,9 @@ data/public/avatar/*
 data/config/*
 !data/config/.gitkeep
 
+# Backend data directory - contains runtime data and secrets
+data/backend/
+
 http_locations.conf
 https_locations.conf
 
