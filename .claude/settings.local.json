@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat:*)",
+      "Read(//mnt/c/Users/wyb/Desktop/code/se/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
