@@ -18,7 +18,6 @@ apk del gcc libc-dev python3-dev libpq-dev libjpeg-turbo-dev zlib-dev freetype-d
 EOS
 
 COPY ./ /app/
-COPY ./frontend/dist/ /app/dist/
 RUN chmod -R u=rwX,go=rX ./ && chmod +x ./deploy/entrypoint.sh
 
 HEALTHCHECK --interval=5s CMD [ "/usr/local/bin/python3", "/app/deploy/health_check.py" ]
