@@ -40,7 +40,7 @@ services:
     environment:
       - SERVICE_URL=http://oj-judge:12358
       - BACKEND_URL=http://oj-backend:8000/api/judge_server_heartbeat/
-      - TOKEN=<GENERATE_A_SECURE_TOKEN_HERE>
+      - TOKEN=34a6fb0dd6bc56fc438267f31cbee8b45ba3df8ddccae02b5dd6ebee0fa423f6
       # - judger_debug=1
 
   oj-backend:
@@ -65,7 +65,7 @@ services:
       - POSTGRES_PORT=5432
       - REDIS_HOST=oj-redis
       - REDIS_PORT=6379
-      - JUDGE_SERVER_TOKEN=<SAME_TOKEN_AS_ABOVE>
+      - JUDGE_SERVER_TOKEN=34a6fb0dd6bc56fc438267f31cbee8b45ba3df8ddccae02b5dd6ebee0fa423f6
       # - FORCE_HTTPS=1
       # - STATIC_CDN_HOST=cdn.oj.com
     ports:

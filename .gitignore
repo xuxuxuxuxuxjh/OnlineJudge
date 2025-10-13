@@ -82,4 +82,24 @@ https_locations.conf
 venv/
 #test docker-compose
 CLAUDE.md
-.gitignore
+.claude/
+
+# Frontend build outputs
+frontend/node_modules/
+frontend/dist/
+frontend/build/vendor-manifest.json
+frontend/build/*.dll.js
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/.cache/
+
+# Node.js in root (if accidentally created)
+node_modules/
+package-lock.json
+
+# Docker volumes and runtime data
+data/judge_server/
+data/redis/
+
+# Editor and IDE
+.vscode/
