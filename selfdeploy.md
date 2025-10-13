@@ -1,3 +1,7 @@
+first:
+cd frontend
+npm run build
+
 
 #  Step 1: Build the Docker Image
 
