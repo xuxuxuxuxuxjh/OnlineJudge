@@ -81,6 +81,5 @@ https_locations.conf
 
 venv/
 #test docker-compose
-docker-compose.yml
 CLAUDE.md
 .gitignore
