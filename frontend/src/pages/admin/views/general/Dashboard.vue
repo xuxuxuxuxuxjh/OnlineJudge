@@ -59,35 +59,6 @@
         <info-card color="#409EFF" icon="el-icon-fa-trophy" message="Recent Contests" class="info-item"
                    :value="infoData.recent_contest_count"></info-card>
       </div>
-      <panel style="margin-top: 5px">
-        <span slot="title" v-loading="loadingReleases">Release Notes
-        <el-popover placement="right" trigger="hover">
-          <i slot="reference" class="el-icon-fa-question-circle import-user-icon"></i>
-          <p>Please upgrade to the latest version to enjoy the new features. </p>
-          <p>Reference: <a href="http://docs.onlinejudge.me/#/onlinejudge/guide/upgrade" target="_blank">
-          http://docs.onlinejudge.me/#/onlinejudge/guide/upgrade</a>
-          </p>
-        </el-popover>
-        </span>
-
-        <el-collapse v-model="activeNames" v-for="(release, index) of releases" :key="'release' + index">
-          <el-collapse-item :name="index+1">
-            <template slot="title">
-              <div v-if="release.new_version">{{release.title}}
-                <el-tag size="mini" type="success">New Version</el-tag>
-              </div>
-              <span v-else>{{release.title}}</span>
-            </template>
-            <p>Level: {{release.level}}</p>
-            <p>Details: </p>
-            <div class="release-body">
-              <ul v-for="detail in release.details" :key="detail">
-                <li v-html="detail"></li>
-              </ul>
-            </div>
-          </el-collapse-item>
-        </el-collapse>
-      </panel>
     </el-col>
   </el-row>
 </template>
@@ -113,10 +84,7 @@
           judge_server_count: 0,
           env: {}
         },
-        activeNames: [1],
-        session: {},
-        loadingReleases: true,
-        releases: []
+        session: {}
       }
     },
     mounted () {
@@ -127,22 +95,6 @@
       api.getSessions().then(resp => {
         this.parseSession(resp.data.data)
       }, () => {
-      })
-      api.getReleaseNotes().then(resp => {
-        this.loadingReleases = false
-        let data = resp.data.data
-        if (!data) {
-          return
-        }
-        let currentVersion = data.local_version
-        data.update.forEach(release => {
-          if (release.version > currentVersion) {
-            release.new_version = true
-          }
-        })
-        this.releases = data.update
-      }, () => {
-        this.loadingReleases = false
       })
     },
     methods: {
