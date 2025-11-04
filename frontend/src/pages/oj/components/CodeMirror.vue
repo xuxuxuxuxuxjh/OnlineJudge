@@ -17,6 +17,12 @@
           <Button icon="upload" @click="onUploadFile"></Button>
         </Tooltip>
 
+        <Tooltip content="AI Modify Code (GPT-4)" placement="top" style="margin-left: 10px">
+          <Button icon="ios-color-wand" :loading="aiModifying" @click="onAIModify" :disabled="!value || value.trim() === ''">
+            AI Modify
+          </Button>
+        </Tooltip>
+
         <input type="file" id="file-uploader" style="display: none" @change="onUploadFileDone">
 
       </div>
@@ -38,6 +44,7 @@
 <script>
   import utils from '@/utils/utils'
   import { codemirror } from 'vue-codemirror-lite'
+  import api from '@oj/api'
 
   // theme
   import 'codemirror/theme/monokai.css'
@@ -64,28 +71,9 @@
     components: {
       codemirror
     },
-    props: {
-      value: {
-        type: String,
-        default: ''
-      },
-      languages: {
-        type: Array,
-        default: () => {
-          return ['C', 'C++', 'Java', 'Python2']
-        }
-      },
-      language: {
-        type: String,
-        default: 'C++'
-      },
-      theme: {
-        type: String,
-        default: 'solarized'
-      }
-    },
     data () {
       return {
+        aiModifying: false,
         options: {
           // codemirror options
           tabSize: 4,
@@ -109,6 +97,30 @@
           {label: this.$i18n.t('m.Solarized_Light'), value: 'solarized'},
           {label: this.$i18n.t('m.Material'), value: 'material'}
         ]
+      }
+    },
+    props: {
+      value: {
+        type: String,
+        default: ''
+      },
+      languages: {
+        type: Array,
+        default: () => {
+          return ['C', 'C++', 'Java', 'Python2']
+        }
+      },
+      language: {
+        type: String,
+        default: 'C++'
+      },
+      theme: {
+        type: String,
+        default: 'solarized'
+      },
+      problemDescription: {
+        type: String,
+        default: ''
       }
     },
     mounted () {
@@ -150,6 +162,33 @@
           document.getElementById('file-uploader').value = ''
         }
         fileReader.readAsText(f, 'UTF-8')
+      },
+      onAIModify () {
+        if (!this.value || this.value.trim() === '') {
+          this.$Message.warning('Code cannot be empty')
+          return
+        }
+        
+        this.aiModifying = true
+        const data = {
+          code: this.value,
+          language: this.language,
+          problem_description: this.problemDescription || ''
+        }
+        
+        api.aiModifyCode(data).then(res => {
+          this.aiModifying = false
+          const modifiedCode = res.data.data.modified_code
+          if (modifiedCode) {
+            this.editor.setValue(modifiedCode)
+            this.$Message.success('Code modified successfully by AI')
+          } else {
+            this.$Message.warning('No modified code returned')
+          }
+        }).catch(err => {
+          this.aiModifying = false
+          this.$Message.error('Failed to modify code: ' + (err.response?.data?.data || err.message || 'Unknown error'))
+        })
       }
     },
     computed: {

@@ -1,4 +1,6 @@
 import ipaddress
+import os
+import requests
 
 from account.decorators import login_required, check_contest_permission
 from contest.models import ContestStatus, ContestRuleType
@@ -12,7 +14,7 @@ from utils.captcha import Captcha
 from utils.throttling import TokenBucket
 from ..models import Submission
 from ..serializers import (CreateSubmissionSerializer, SubmissionModelSerializer,
-                           ShareSubmissionSerializer)
+                           ShareSubmissionSerializer, AIModifyCodeSerializer)
 from ..serializers import SubmissionSafeModelSerializer, SubmissionListSerializer
 
 
@@ -201,3 +203,89 @@ class SubmissionExistsAPI(APIView):
         return self.success(request.user.is_authenticated and
                             Submission.objects.filter(problem_id=request.GET["problem_id"],
                                                       user_id=request.user.id).exists())
+
+
+class AIModifyCodeAPI(APIView):
+    @validate_serializer(AIModifyCodeSerializer)
+    @login_required
+    def post(self, request):
+        """
+        Use GPT-4 API to modify code
+        """
+        # Get OpenAI API key from environment variable
+        api_key = os.environ.get('OPENAI_API_KEY')
+        if not api_key:
+            return self.error("OpenAI API key is not configured. Please set OPENAI_API_KEY environment variable.")
+        
+        code = request.data.get("code")
+        language = request.data.get("language")
+        problem_description = request.data.get("problem_description", "")
+        
+        # Prepare the prompt for GPT-4
+        prompt = f"""You are an expert code reviewer and optimizer. Please review and improve the following {language} code.
+
+{problem_description}
+
+Current code:
+```{language.lower()}
+{code}
+```
+
+Please provide an improved version of the code that:
+1. Fixes any bugs or logical errors
+2. Improves code quality, readability, and efficiency
+3. Follows best practices for {language}
+4. Maintains the same functionality
+
+Return only the improved code without any explanations or markdown formatting."""
+        
+        try:
+            # Call OpenAI GPT-4 API
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            
+            payload = {
+                "model": "gpt-4",
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "You are a helpful code review assistant. Always return only the code without any explanations, comments, or markdown formatting."
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                "temperature": 0.3,
+                "max_tokens": 4000
+            }
+            
+            response = requests.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers=headers,
+                json=payload,
+                timeout=30
+            )
+            
+            if response.status_code != 200:
+                error_msg = response.json().get("error", {}).get("message", "Unknown error")
+                return self.error(f"OpenAI API error: {error_msg}")
+            
+            result = response.json()
+            modified_code = result["choices"][0]["message"]["content"].strip()
+            
+            # Remove markdown code blocks if present
+            if modified_code.startswith("```"):
+                lines = modified_code.split("\n")
+                modified_code = "\n".join(lines[1:-1]) if lines[-1].startswith("```") else "\n".join(lines[1:])
+            
+            return self.success({"modified_code": modified_code})
+            
+        except requests.exceptions.Timeout:
+            return self.error("Request timeout. Please try again.")
+        except requests.exceptions.RequestException as e:
+            return self.error(f"Network error: {str(e)}")
+        except Exception as e:
+            return self.error(f"Unexpected error: {str(e)}")

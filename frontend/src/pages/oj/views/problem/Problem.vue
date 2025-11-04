@@ -54,6 +54,7 @@
                     :languages="problem.languages"
                     :language="language"
                     :theme="theme"
+                    :problem-description="problemDescription"
                     @resetCode="onResetToTemplate"
                     @changeTheme="onChangeTheme"
                     @changeLang="onChangeLang"></CodeMirror>
@@ -489,6 +490,26 @@
         } else {
           return {name: 'submission-list', query: {problemID: this.problemID}}
         }
+      },
+      problemDescription () {
+        // Generate problem description for AI
+        let desc = `Problem: ${this.problem.title}\n\n`
+        desc += `Description:\n${this.problem.description || ''}\n\n`
+        if (this.problem.input_description) {
+          desc += `Input:\n${this.problem.input_description}\n\n`
+        }
+        if (this.problem.output_description) {
+          desc += `Output:\n${this.problem.output_description}\n\n`
+        }
+        if (this.problem.samples && this.problem.samples.length > 0) {
+          desc += 'Samples:\n'
+          this.problem.samples.forEach((sample, index) => {
+            desc += `Sample ${index + 1}:\n`
+            desc += `Input:\n${sample.input}\n`
+            desc += `Output:\n${sample.output}\n\n`
+          })
+        }
+        return desc
       }
     },
     beforeRouteLeave (to, from, next) {

@@ -244,6 +244,11 @@ export default {
       data
     })
   },
+  aiModifyCode (data) {
+    return ajax('ai_modify_code', 'post', {
+      data
+    })
+  },
   getUserRank (offset, limit, rule = 'acm') {
     let params = {
       offset,

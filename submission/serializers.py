@@ -16,6 +16,12 @@ class ShareSubmissionSerializer(serializers.Serializer):
     shared = serializers.BooleanField()
 
 
+class AIModifyCodeSerializer(serializers.Serializer):
+    code = serializers.CharField(max_length=1024 * 1024)
+    language = LanguageNameChoiceField()
+    problem_description = serializers.CharField(required=False, allow_blank=True)
+
+
 class SubmissionModelSerializer(serializers.ModelSerializer):
 
     class Meta:
