@@ -17,13 +17,27 @@
           <Button icon="upload" @click="onUploadFile"></Button>
         </Tooltip>
 
-        <Tooltip content="AI Modify Code (GPT-4)" placement="top" style="margin-left: 10px">
+        <Tooltip content="AI Modify Code (GPT-3.5-turbo)" placement="top" style="margin-left: 10px">
           <Button icon="ios-color-wand" :loading="aiModifying" @click="onAIModify" :disabled="!value || value.trim() === ''">
             AI Modify
           </Button>
         </Tooltip>
 
         <input type="file" id="file-uploader" style="display: none" @change="onUploadFileDone">
+        
+        <div style="margin-top: 10px;">
+          <Input 
+            v-model="openaiApiKey" 
+            type="password"
+            placeholder="Enter your OpenAI API Key"
+            style="width: 100%;"
+            :show-password="true">
+            <span slot="prepend">OpenAI API Key:</span>
+          </Input>
+          <p style="margin-top: 5px; font-size: 12px; color: #999;">
+            Enter your OpenAI API Key to use AI Modify feature. If empty, default key will be used.
+          </p>
+        </div>
 
       </div>
       </Col>
@@ -74,6 +88,7 @@
     data () {
       return {
         aiModifying: false,
+        openaiApiKey: '',
         options: {
           // codemirror options
           tabSize: 4,
@@ -169,11 +184,15 @@
           return
         }
         
+        // API Key is optional, will use default if empty
+        // Removed the check to allow using default key
+        
         this.aiModifying = true
         const data = {
           code: this.value,
           language: this.language,
-          problem_description: this.problemDescription || ''
+          problem_description: this.problemDescription || '',
+          openai_api_key: this.openaiApiKey.trim()
         }
         
         api.aiModifyCode(data).then(res => {
@@ -187,7 +206,8 @@
           }
         }).catch(err => {
           this.aiModifying = false
-          this.$Message.error('Failed to modify code: ' + (err.response?.data?.data || err.message || 'Unknown error'))
+          const errorMsg = (err.response && err.response.data && err.response.data.data) || err.message || 'Unknown error'
+          this.$Message.error('Failed to modify code: ' + errorMsg)
         })
       }
     },

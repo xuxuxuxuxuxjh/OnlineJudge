@@ -138,23 +138,40 @@ class JudgeServerHeartbeatAPI(CSRFExemptAPIView):
             return self.error("Invalid token")
 
         try:
-            server = JudgeServer.objects.get(hostname=data["hostname"])
+            # 使用get_or_create避免重复记录，优先使用最新的记录
+            servers = JudgeServer.objects.filter(hostname=data["hostname"]).order_by("-create_time")
+            if servers.exists():
+                # 如果存在多个相同hostname的记录，删除旧的，只保留最新的
+                if servers.count() > 1:
+                    servers[1:].delete()
+                server = servers.first()
+            else:
+                raise JudgeServer.DoesNotExist
+            
             server.judger_version = data["judger_version"]
             server.cpu_core = data["cpu_core"]
             server.memory_usage = data["memory"]
             server.cpu_usage = data["cpu"]
-            server.service_url = data["service_url"]
+            # 强制使用8080端口，因为判题服务器实际监听8080端口
+            service_url = data.get("service_url", "")
+            if service_url and ":12358" in service_url:
+                service_url = service_url.replace(":12358", ":8080")
+            server.service_url = service_url
             server.ip = request.ip
             server.last_heartbeat = timezone.now()
             server.save(update_fields=["judger_version", "cpu_core", "memory_usage", "service_url", "ip", "last_heartbeat"])
         except JudgeServer.DoesNotExist:
+            # 强制使用8080端口
+            service_url = data.get("service_url", "")
+            if service_url and ":12358" in service_url:
+                service_url = service_url.replace(":12358", ":8080")
             JudgeServer.objects.create(hostname=data["hostname"],
                                        judger_version=data["judger_version"],
                                        cpu_core=data["cpu_core"],
                                        memory_usage=data["memory"],
                                        cpu_usage=data["cpu"],
                                        ip=request.META["REMOTE_ADDR"],
-                                       service_url=data["service_url"],
+                                       service_url=service_url,
                                        last_heartbeat=timezone.now(),
                                        )
         # 新server上线 处理队列中的，防止没有新的提交而导致一直waiting

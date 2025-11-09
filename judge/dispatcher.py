@@ -61,9 +61,24 @@ class DispatcherBase(object):
         if data:
             kwargs["json"] = data
         try:
-            return requests.post(url, **kwargs).json()
+            response = requests.post(url, **kwargs, timeout=30)
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.Timeout:
+            logger.error(f"Judge server request timeout: {url}")
+            return None
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f"Judge server connection error: {url}, error: {str(e)}")
+            return None
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Judge server request error: {url}, error: {str(e)}")
+            return None
+        except ValueError as e:
+            logger.error(f"Judge server response is not valid JSON: {url}, error: {str(e)}")
+            return None
         except Exception as e:
-            logger.exception(e)
+            logger.exception(f"Unexpected error when calling judge server {url}: {str(e)}")
+            return None
 
 
 class SPJCompiler(DispatcherBase):

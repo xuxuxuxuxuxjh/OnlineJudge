@@ -1,6 +1,7 @@
 import ipaddress
 import os
 import requests
+from openai import OpenAI
 
 from account.decorators import login_required, check_contest_permission
 from contest.models import ContestStatus, ContestRuleType
@@ -210,18 +211,22 @@ class AIModifyCodeAPI(APIView):
     @login_required
     def post(self, request):
         """
-        Use GPT-4 API to modify code
+        Use GPT-3.5-turbo API to modify code
         """
-        # Get OpenAI API key from environment variable
-        api_key = os.environ.get('OPENAI_API_KEY')
-        if not api_key:
-            return self.error("OpenAI API key is not configured. Please set OPENAI_API_KEY environment variable.")
+        # Get API key from request or use default
+        openai_api_key = request.data.get("openai_api_key", "").strip()
+        if not openai_api_key:
+            # Use default API key if not provided
+            openai_api_key = 'sk-5mGnAe0NvCGnwwcBiOcAwLHXl4h1NSFm3xD5yL0mdWS5FkaE'
+        
+        # Initialize OpenAI client with custom API key and base URL
+        client = OpenAI(api_key=openai_api_key, base_url='https://poloai.top/v1')
         
         code = request.data.get("code")
         language = request.data.get("language")
         problem_description = request.data.get("problem_description", "")
         
-        # Prepare the prompt for GPT-4
+        # Prepare the prompt for GPT-3.5-turbo
         prompt = f"""You are an expert code reviewer and optimizer. Please review and improve the following {language} code.
 
 {problem_description}
@@ -240,15 +245,10 @@ Please provide an improved version of the code that:
 Return only the improved code without any explanations or markdown formatting."""
         
         try:
-            # Call OpenAI GPT-4 API
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            }
-            
-            payload = {
-                "model": "gpt-4",
-                "messages": [
+            # Call OpenAI GPT-3.5-turbo API
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
                     {
                         "role": "system",
                         "content": "You are a helpful code review assistant. Always return only the code without any explanations, comments, or markdown formatting."
@@ -258,23 +258,12 @@ Return only the improved code without any explanations or markdown formatting.""
                         "content": prompt
                     }
                 ],
-                "temperature": 0.3,
-                "max_tokens": 4000
-            }
-            
-            response = requests.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers=headers,
-                json=payload,
+                temperature=0.3,
+                max_tokens=4000,
                 timeout=30
             )
             
-            if response.status_code != 200:
-                error_msg = response.json().get("error", {}).get("message", "Unknown error")
-                return self.error(f"OpenAI API error: {error_msg}")
-            
-            result = response.json()
-            modified_code = result["choices"][0]["message"]["content"].strip()
+            modified_code = response.choices[0].message.content.strip()
             
             # Remove markdown code blocks if present
             if modified_code.startswith("```"):
@@ -283,9 +272,12 @@ Return only the improved code without any explanations or markdown formatting.""
             
             return self.success({"modified_code": modified_code})
             
-        except requests.exceptions.Timeout:
-            return self.error("Request timeout. Please try again.")
-        except requests.exceptions.RequestException as e:
-            return self.error(f"Network error: {str(e)}")
         except Exception as e:
-            return self.error(f"Unexpected error: {str(e)}")
+            error_msg = str(e)
+            if hasattr(e, 'response') and hasattr(e.response, 'json'):
+                try:
+                    error_data = e.response.json()
+                    error_msg = error_data.get("error", {}).get("message", error_msg)
+                except:
+                    pass
+            return self.error(f"AI API error: {error_msg}")
