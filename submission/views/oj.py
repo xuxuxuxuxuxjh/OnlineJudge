@@ -226,23 +226,46 @@ class AIModifyCodeAPI(APIView):
         language = request.data.get("language")
         problem_description = request.data.get("problem_description", "")
         
-        # Prepare the prompt for GPT-3.5-turbo
-        prompt = f"""You are an expert code reviewer and optimizer. Please review and improve the following {language} code.
+        # Prepare the original code lines for diff format
+        original_lines = code.split('\n')
+        
+        # Prepare the prompt for GPT-3.5-turbo with problem context and diff format requirement
+        prompt = f"""You are an expert code reviewer and optimizer. Please review and improve the following {language} code based on the problem requirements.
 
+## Problem Context:
 {problem_description}
 
-Current code:
+## Current Code:
 ```{language.lower()}
 {code}
 ```
 
-Please provide an improved version of the code that:
-1. Fixes any bugs or logical errors
-2. Improves code quality, readability, and efficiency
-3. Follows best practices for {language}
-4. Maintains the same functionality
+## Requirements:
+1. Fix any bugs or logical errors based on the problem context
+2. Improve code quality, readability, and efficiency
+3. Follow best practices for {language}
+4. Maintain the same functionality and ensure it solves the problem correctly
 
-Return only the improved code without any explanations or markdown formatting."""
+## Output Format:
+You MUST output the code modifications in diff format, line by line. Each line should be prefixed as follows:
+- Lines to DELETE: prefix with "- " (minus sign followed by space, e.g., "- int old_var = 0;")
+- Lines to ADD: prefix with "+ " (plus sign followed by space, e.g., "+ int new_var = 1;")
+- Lines to KEEP unchanged: no prefix, output the original line as-is (e.g., "  return 0;")
+
+IMPORTANT:
+- Output the ENTIRE code in diff format, including unchanged lines
+- Start from the first line of code
+- Do NOT include any explanations, comments, or markdown formatting
+- Do NOT include code block markers (```)
+- Preserve the exact structure and indentation of the original code
+- Only modify lines that need improvement, keep other lines unchanged
+
+Example format:
+- int a = 1;
++ int a = 1, b = 2;
+  int main() {{
+    return 0;
+  }}"""
         
         try:
             # Call OpenAI GPT-3.5-turbo API
@@ -251,7 +274,7 @@ Return only the improved code without any explanations or markdown formatting.""
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are a helpful code review assistant. Always return only the code without any explanations, comments, or markdown formatting."
+                        "content": "You are a helpful code review assistant. You MUST return code modifications in diff format: lines prefixed with '- ' are deleted, lines prefixed with '+ ' are added, and lines without prefix are kept unchanged. Output the ENTIRE code in this format, including all unchanged lines. Do not include any explanations, comments, or markdown formatting."
                     },
                     {
                         "role": "user",
@@ -263,12 +286,15 @@ Return only the improved code without any explanations or markdown formatting.""
                 timeout=30
             )
             
-            modified_code = response.choices[0].message.content.strip()
+            diff_output = response.choices[0].message.content.strip()
             
             # Remove markdown code blocks if present
-            if modified_code.startswith("```"):
-                lines = modified_code.split("\n")
-                modified_code = "\n".join(lines[1:-1]) if lines[-1].startswith("```") else "\n".join(lines[1:])
+            if diff_output.startswith("```"):
+                lines = diff_output.split("\n")
+                diff_output = "\n".join(lines[1:-1]) if lines[-1].startswith("```") else "\n".join(lines[1:])
+            
+            # Parse diff format and apply changes to generate final code
+            modified_code = self._apply_diff(original_lines, diff_output)
             
             return self.success({"modified_code": modified_code})
             
@@ -281,3 +307,63 @@ Return only the improved code without any explanations or markdown formatting.""
                 except:
                     pass
             return self.error(f"AI API error: {error_msg}")
+    
+    def _apply_diff(self, original_lines, diff_output):
+        """
+        Apply diff format changes to original code.
+        Diff format: lines prefixed with '- ' are deleted, '+ ' are added, no prefix are kept.
+        """
+        
+        result_lines = []
+        diff_lines = [line.rstrip('\r') for line in diff_output.split('\n')]
+        original_index = 0
+        
+        i = 0
+        while i < len(diff_lines):
+            line = diff_lines[i]
+            
+            # Check if line starts with diff prefix (with space)
+            if line.startswith('- '):
+                # Line to delete - skip corresponding original line
+                if original_index < len(original_lines):
+                    original_index += 1
+            elif line.startswith('+ '):
+                # Line to add - add it to result
+                result_lines.append(line[2:])  # Remove '+ ' prefix
+            elif line.startswith('-'):
+                # Line to delete (without space after -) - handle as delete
+                if original_index < len(original_lines):
+                    original_index += 1
+            elif line.startswith('+'):
+                # Line to add (without space after +) - handle as add
+                result_lines.append(line[1:].lstrip())
+            elif line.strip() == '':
+                # Empty line - check if original has empty line at this position
+                if original_index < len(original_lines):
+                    if original_lines[original_index].strip() == '':
+                        result_lines.append('')
+                        original_index += 1
+                    else:
+                        # Original doesn't have empty line here, but diff does - add it
+                        result_lines.append('')
+                else:
+                    # Past end of original, add empty line
+                    result_lines.append('')
+            else:
+                # Line to keep unchanged - use original line to preserve exact formatting
+                if original_index < len(original_lines):
+                    result_lines.append(original_lines[original_index])
+                    original_index += 1
+                else:
+                    # No more original lines, but diff has more - add as-is (remove any accidental prefix)
+                    clean_line = line.lstrip(' +-')
+                    result_lines.append(clean_line)
+            
+            i += 1
+        
+        # Add any remaining original lines that weren't processed (shouldn't happen in proper diff)
+        while original_index < len(original_lines):
+            result_lines.append(original_lines[original_index])
+            original_index += 1
+        
+        return '\n'.join(result_lines)
