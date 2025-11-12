@@ -48,33 +48,82 @@ function downloadFile (url) {
   return new Promise((resolve, reject) => {
     Vue.prototype.$http.get(url, {responseType: 'blob'}).then(resp => {
       let headers = resp.headers
-      if (headers['content-type'].indexOf('json') !== -1) {
-        let fr = new window.FileReader()
-        if (resp.data.error) {
-          Vue.prototype.$error(resp.data.error)
-        } else {
-          Vue.prototype.$error('Invalid file format')
-        }
+      
+      // 改进错误处理：更准确的错误检测和资源清理
+      if (headers['content-type'] && headers['content-type'].indexOf('json') !== -1) {
+        const fr = new window.FileReader()
+        
         fr.onload = (event) => {
-          let data = JSON.parse(event.target.result)
-          if (data.error) {
-            Vue.prototype.$error(data.data)
-          } else {
-            Vue.prototype.$error('Invalid file format')
+          try {
+            const data = JSON.parse(event.target.result)
+            if (data.error) {
+              Vue.prototype.$error(data.data || '下载失败')
+              reject(new Error(data.data || '下载失败'))
+            } else {
+              Vue.prototype.$error('无效的文件格式')
+              reject(new Error('无效的文件格式'))
+            }
+          } catch (parseError) {
+            Vue.prototype.$error('文件解析失败')
+            reject(parseError)
           }
         }
-        let b = new window.Blob([resp.data], {type: 'application/json'})
-        fr.readAsText(b)
+        
+        fr.onerror = () => {
+          Vue.prototype.$error('文件读取失败')
+          reject(new Error('文件读取失败'))
+        }
+        
+        const blob = new window.Blob([resp.data], {type: 'application/json'})
+        fr.readAsText(blob)
         return
       }
-      let link = document.createElement('a')
-      link.href = window.URL.createObjectURL(new window.Blob([resp.data], {type: headers['content-type']}))
-      link.download = (headers['content-disposition'] || '').split('filename=')[1]
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      resolve()
-    }).catch(() => {})
+      
+      // 改进文件下载：更安全的文件名提取和资源清理
+      try {
+        const contentDisposition = headers['content-disposition']
+        let filename = 'download'
+        
+        if (contentDisposition) {
+          // 更安全的文件名提取，支持 UTF-8 编码
+          const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/)
+          if (filenameMatch && filenameMatch[1]) {
+            filename = filenameMatch[1].replace(/['"]/g, '')
+            // 处理 UTF-8 编码的文件名
+            try {
+              filename = decodeURIComponent(filename)
+            } catch (e) {
+              // 如果解码失败，使用原始文件名
+            }
+          }
+        }
+        
+        const blob = new window.Blob([resp.data], {type: headers['content-type']})
+        const objectURL = window.URL.createObjectURL(blob)
+        
+        const link = document.createElement('a')
+        link.href = objectURL
+        link.download = filename
+        link.style.display = 'none'
+        
+        document.body.appendChild(link)
+        link.click()
+        
+        // 清理资源：移除 DOM 元素和释放 Object URL
+        setTimeout(() => {
+          document.body.removeChild(link)
+          window.URL.revokeObjectURL(objectURL)
+        }, 100)
+        
+        resolve(filename)
+      } catch (downloadError) {
+        Vue.prototype.$error('文件下载失败')
+        reject(downloadError)
+      }
+    }).catch((error) => {
+      Vue.prototype.$error('网络请求失败')
+      reject(error)
+    })
   })
 }
 
