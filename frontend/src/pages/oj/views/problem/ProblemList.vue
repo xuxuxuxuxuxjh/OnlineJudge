@@ -28,6 +28,7 @@
             <Input v-model="query.keyword"
                    @on-enter="filterByKeyword"
                    @on-click="filterByKeyword"
+                   @on-change="debouncedKeywordSearch"
                    placeholder="keyword"
                    icon="ios-search-strong"/>
           </li>
@@ -177,6 +178,10 @@
     },
     mounted () {
       this.init()
+      // 创建防抖搜索函数，避免用户输入时频繁请求
+      this.debouncedKeywordSearch = utils.createDebouncedSearch(() => {
+        this.filterByKeyword()
+      }, 300)
     },
     methods: {
       init (simulate = false) {

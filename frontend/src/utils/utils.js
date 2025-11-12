@@ -143,6 +143,38 @@ function getLanguages () {
   })
 }
 
+// 防抖函数：在事件被触发n秒后再执行回调，如果在这n秒内又被触发，则重新计时
+function debounce (func, wait, immediate) {
+  let timeout
+  return function executedFunction (...args) {
+    const later = () => {
+      timeout = null
+      if (!immediate) func.apply(this, args)
+    }
+    const callNow = immediate && !timeout
+    clearTimeout(timeout)
+    timeout = setTimeout(later, wait)
+    if (callNow) func.apply(this, args)
+  }
+}
+
+// 节流函数：规定在一个单位时间内，只能触发一次函数
+function throttle (func, limit) {
+  let inThrottle
+  return function (...args) {
+    if (!inThrottle) {
+      func.apply(this, args)
+      inThrottle = true
+      setTimeout(() => (inThrottle = false), limit)
+    }
+  }
+}
+
+// 创建一个防抖化的搜索函数
+function createDebouncedSearch (searchFunction, delay = 300) {
+  return debounce(searchFunction, delay)
+}
+
 export default {
   submissionMemoryFormat: submissionMemoryFormat,
   submissionTimeFormat: submissionTimeFormat,
@@ -150,5 +182,8 @@ export default {
   filterEmptyValue: filterEmptyValue,
   breakLongWords: breakLongWords,
   downloadFile: downloadFile,
-  getLanguages: getLanguages
+  getLanguages: getLanguages,
+  debounce: debounce,
+  throttle: throttle,
+  createDebouncedSearch: createDebouncedSearch
 }

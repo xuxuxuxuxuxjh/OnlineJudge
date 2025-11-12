@@ -27,7 +27,10 @@
               </i-switch>
             </li>
             <li>
-              <Input v-model="formFilter.username" :placeholder="$t('m.Search_Author')" @on-enter="handleQueryChange"/>
+              <Input v-model="formFilter.username" 
+                     :placeholder="$t('m.Search_Author')" 
+                     @on-enter="handleQueryChange"
+                     @on-change="debouncedUsernameSearch"/>
             </li>
 
             <li>
@@ -188,6 +191,10 @@
       // 去除submitting的状态 和 两个
       delete this.JUDGE_STATUS['9']
       delete this.JUDGE_STATUS['2']
+      // 创建防抖搜索函数，避免用户输入用户名时频繁请求
+      this.debouncedUsernameSearch = utils.createDebouncedSearch(() => {
+        this.handleQueryChange()
+      }, 300)
     },
     methods: {
       init () {

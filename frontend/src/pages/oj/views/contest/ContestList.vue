@@ -31,7 +31,7 @@
             </Dropdown>
           </li>
           <li>
-            <Input id="keyword" @on-enter="changeRoute" @on-click="changeRoute" v-model="query.keyword"
+            <Input id="keyword" @on-enter="changeRoute" @on-click="changeRoute" @on-change="debouncedKeywordSearch" v-model="query.keyword"
                    icon="ios-search-strong" placeholder="Keyword"/>
           </li>
         </ul>
@@ -120,6 +120,12 @@
       }, (res) => {
         next()
       })
+    },
+    mounted () {
+      // 创建防抖搜索函数，避免用户输入时频繁请求
+      this.debouncedKeywordSearch = utils.createDebouncedSearch(() => {
+        this.changeRoute()
+      }, 300)
     },
     methods: {
       init () {

@@ -291,6 +291,10 @@
     },
     mounted () {
       this.getUserList(1)
+      // 创建防抖搜索函数
+      this.debouncedSearch = utils.createDebouncedSearch(() => {
+        this.currentChange(1)
+      }, 500) // 500ms的防抖延迟
     },
     methods: {
       // 切换页码回调
@@ -404,7 +408,8 @@
     },
     watch: {
       'keyword' () {
-        this.currentChange(1)
+        // 使用防抖搜索，避免频繁请求
+        this.debouncedSearch()
       },
       'user.admin_type' () {
         if (this.user.admin_type === 'Super Admin') {

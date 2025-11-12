@@ -125,6 +125,10 @@
     },
     mounted () {
       this.getContestList(this.currentPage)
+      // 创建防抖搜索函数，避免用户输入时频繁请求
+      this.debouncedKeywordSearch = utils.createDebouncedSearch(() => {
+        this.currentChange(1)
+      }, 500)
     },
     filters: {
       contestStatus (value) {
@@ -171,7 +175,8 @@
     },
     watch: {
       'keyword' () {
-        this.currentChange(1)
+        // 使用防抖搜索，避免频繁请求
+        this.debouncedKeywordSearch()
       }
     }
   }

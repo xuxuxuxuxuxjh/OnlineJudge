@@ -115,6 +115,10 @@
     },
     mounted () {
       this.getProblems()
+      // 创建防抖搜索函数，避免用户输入时频繁请求
+      this.debouncedKeywordSearch = utils.createDebouncedSearch(() => {
+        this.getProblems()
+      }, 500)
     },
     methods: {
       handleSelectionChange (val) {
@@ -164,7 +168,8 @@
     },
     watch: {
       'keyword' () {
-        this.getProblems()
+        // 使用防抖搜索，避免频繁请求
+        this.debouncedKeywordSearch()
       }
     }
   }

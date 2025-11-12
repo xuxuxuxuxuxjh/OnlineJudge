@@ -43,6 +43,7 @@
 </template>
 <script>
   import api from '@admin/api'
+  import utils from '@/utils/utils'
 
   export default {
     name: 'add-problem-from-public',
@@ -64,6 +65,10 @@
         this.getPublicProblem()
       }).catch(() => {
       })
+      // 创建防抖搜索函数，避免用户输入时频繁请求
+      this.debouncedKeywordSearch = utils.createDebouncedSearch(() => {
+        this.getPublicProblem(this.page)
+      }, 500)
     },
     methods: {
       getPublicProblem (page) {
@@ -98,7 +103,8 @@
     },
     watch: {
       'keyword' () {
-        this.getPublicProblem(this.page)
+        // 使用防抖搜索，避免频繁请求
+        this.debouncedKeywordSearch()
       }
     }
   }
