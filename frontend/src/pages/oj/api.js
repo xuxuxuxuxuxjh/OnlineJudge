@@ -1,6 +1,7 @@
 import Vue from 'vue'
 import store from '@/store'
 import axios from 'axios'
+import apiCache from '@/utils/apiCache'
 
 Vue.prototype.$http = axios
 axios.defaults.baseURL = '/api'
@@ -273,6 +274,39 @@ export default {
     return ajax('admin/contest/acm_helper', 'put', {
       data
     })
+  },
+  
+  // 缓存管理方法
+  cache: {
+    // 清理所有缓存
+    clear() {
+      apiCache.clear()
+    },
+    
+    // 清理特定模式的缓存
+    clearPattern(pattern) {
+      apiCache.clearPattern(pattern)
+    },
+    
+    // 获取缓存统计
+    getStats() {
+      return apiCache.getStats()
+    },
+    
+    // 清理用户相关缓存（登出时使用）
+    clearUserCache() {
+      apiCache.clearPattern(/profile|user_rank|submissions/)
+    },
+    
+    // 清理题目相关缓存（题目更新时使用）
+    clearProblemCache() {
+      apiCache.clearPattern(/problem/)
+    },
+    
+    // 清理比赛相关缓存（比赛更新时使用）
+    clearContestCache() {
+      apiCache.clearPattern(/contest/)
+    }
   }
 }
 
@@ -289,7 +323,27 @@ function ajax (url, method, options) {
   } else {
     params = data = {}
   }
-  return new Promise((resolve, reject) => {
+
+  // 生成缓存键
+  const cacheKey = apiCache.generateKey(url, method, params)
+  
+  // 检查是否可缓存且为GET请求
+  if (apiCache.isCacheable(url, method)) {
+    // 检查缓存
+    const cachedData = apiCache.get(cacheKey)
+    if (cachedData) {
+      return Promise.resolve(cachedData)
+    }
+    
+    // 检查是否有正在进行的请求（请求去重）
+    const pendingRequest = apiCache.getPendingRequest(cacheKey)
+    if (pendingRequest) {
+      console.log(`[API Cache] Request deduplication: ${cacheKey}`)
+      return pendingRequest
+    }
+  }
+
+  const requestPromise = new Promise((resolve, reject) => {
     axios({
       url,
       method,
@@ -305,6 +359,12 @@ function ajax (url, method, options) {
           store.dispatch('changeModalStatus', {'mode': 'login', 'visible': true})
         }
       } else {
+        // 缓存成功的GET请求结果
+        if (apiCache.isCacheable(url, method)) {
+          const config = apiCache.getCacheConfig(url)
+          apiCache.set(cacheKey, res, config.ttl)
+        }
+        
         resolve(res)
         // if (method !== 'get') {
         //   Vue.prototype.$success('Succeeded')
@@ -316,4 +376,11 @@ function ajax (url, method, options) {
       Vue.prototype.$error(res.data.data)
     })
   })
+
+  // 为可缓存的请求设置请求去重
+  if (apiCache.isCacheable(url, method)) {
+    apiCache.setPendingRequest(cacheKey, requestPromise)
+  }
+
+  return requestPromise
 }

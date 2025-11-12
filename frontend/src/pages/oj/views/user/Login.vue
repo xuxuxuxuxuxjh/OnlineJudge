@@ -84,6 +84,8 @@
           }
           api.login(formData).then(res => {
             this.btnLoginLoading = false
+            // 清理旧的用户缓存，确保数据新鲜
+            api.cache.clearUserCache()
             this.changeModalStatus({visible: false})
             this.getProfile()
             this.$success(this.$i18n.t('m.Welcome_back'))
