@@ -175,6 +175,80 @@ function createDebouncedSearch (searchFunction, delay = 300) {
   return debounce(searchFunction, delay)
 }
 
+// 安全获取嵌套对象属性的函数
+function safeGet (object, path, defaultValue = null) {
+  const keys = path.split('.')
+  let result = object
+  
+  for (const key of keys) {
+    if (result === null || result === undefined || !(key in result)) {
+      return defaultValue
+    }
+    result = result[key]
+  }
+  
+  return result
+}
+
+// 通用的API错误处理函数
+function handleApiError (error, context = '') {
+  let errorMessage = '请求失败'
+  
+  // 尝试从多个可能的位置获取错误信息
+  const errorData = safeGet(error, 'response.data.data') || 
+                   safeGet(error, 'response.data.message') || 
+                   safeGet(error, 'response.statusText') || 
+                   safeGet(error, 'message')
+  
+  if (errorData) {
+    errorMessage = typeof errorData === 'string' ? errorData : '服务器错误'
+  }
+  
+  // 根据HTTP状态码提供更友好的错误信息
+  const status = safeGet(error, 'response.status')
+  switch (status) {
+    case 400:
+      errorMessage = '请求参数错误'
+      break
+    case 401:
+      errorMessage = '请先登录'
+      break
+    case 403:
+      errorMessage = '权限不足'
+      break
+    case 404:
+      errorMessage = '资源不存在'
+      break
+    case 429:
+      errorMessage = '请求过于频繁，请稍后再试'
+      break
+    case 500:
+      errorMessage = '服务器内部错误'
+      break
+    case 502:
+      errorMessage = '网关错误'
+      break
+    case 503:
+      errorMessage = '服务暂不可用'
+      break
+  }
+  
+  if (context) {
+    errorMessage = `${context}: ${errorMessage}`
+  }
+  
+  return errorMessage
+}
+
+// 检查对象是否为空
+function isEmpty (obj) {
+  if (obj === null || obj === undefined) return true
+  if (typeof obj === 'string') return obj.trim() === ''
+  if (Array.isArray(obj)) return obj.length === 0
+  if (typeof obj === 'object') return Object.keys(obj).length === 0
+  return false
+}
+
 export default {
   submissionMemoryFormat: submissionMemoryFormat,
   submissionTimeFormat: submissionTimeFormat,
@@ -185,5 +259,8 @@ export default {
   getLanguages: getLanguages,
   debounce: debounce,
   throttle: throttle,
-  createDebouncedSearch: createDebouncedSearch
+  createDebouncedSearch: createDebouncedSearch,
+  safeGet: safeGet,
+  handleApiError: handleApiError,
+  isEmpty: isEmpty
 }
