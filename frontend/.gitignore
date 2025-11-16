@@ -27,3 +27,6 @@ Thumbs.db
 .env
 .env.local
 .env.*.local
+
+# Static vendor DLL files
+static/js/vendor.dll.*.js
