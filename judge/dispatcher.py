@@ -30,7 +30,7 @@ def process_pending_task():
             data = json.loads(tmp_data.decode("utf-8"))
             judge_task.send(**data)
 
-
+# 选择一个可用的JudgeServer并进行任务调度
 class ChooseJudgeServer:
     def __init__(self):
         self.server = None
@@ -51,7 +51,7 @@ class ChooseJudgeServer:
         if self.server:
             JudgeServer.objects.filter(id=self.server.id).update(task_number=F("task_number") - 1)
 
-
+# 基础的调度类，负责和judge服务器进行通信
 class DispatcherBase(object):
     def __init__(self):
         self.token = hashlib.sha256(SysOptions.judge_server_token.encode("utf-8")).hexdigest()
@@ -80,7 +80,7 @@ class DispatcherBase(object):
             logger.exception(f"Unexpected error when calling judge server {url}: {str(e)}")
             return None
 
-
+# SPJ(特殊判题)编译器类
 class SPJCompiler(DispatcherBase):
     def __init__(self, spj_code, spj_version, spj_language):
         super().__init__()
@@ -102,7 +102,7 @@ class SPJCompiler(DispatcherBase):
             if result["err"]:
                 return result["data"]
 
-
+# 判题调度类
 class JudgeDispatcher(DispatcherBase):
     def __init__(self, submission_id, problem_id):
         super().__init__()
@@ -138,6 +138,7 @@ class JudgeDispatcher(DispatcherBase):
             self.submission.statistic_info["score"] = score
 
     def judge(self):
+        # 判题流程，包括语言选择、SPJ处理、请求judge server等
         language = self.submission.language
         sub_config = list(filter(lambda item: language == item["name"], SysOptions.languages))[0]
         spj_config = {}
@@ -146,13 +147,15 @@ class JudgeDispatcher(DispatcherBase):
                 if lang["name"] == self.problem.spj_language:
                     spj_config = lang["spj"]
                     break
-
+        
+        # 根据问题模板和语言构建代码
         if language in self.problem.template:
             template = parse_problem_template(self.problem.template[language])
             code = f"{template['prepend']}\n{self.submission.code}\n{template['append']}"
         else:
             code = self.submission.code
 
+        # 构造请求数据
         data = {
             "language_config": sub_config["config"],
             "src": code,
@@ -167,6 +170,7 @@ class JudgeDispatcher(DispatcherBase):
             "io_mode": self.problem.io_mode
         }
 
+        # 调用判题服务器进行判题
         with ChooseJudgeServer() as server:
             if not server:
                 data = {"submission_id": self.submission.id, "problem_id": self.problem.id}
