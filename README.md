@@ -30,11 +30,7 @@ Main modules are available below:
 
 ## Installation
 
-Follow me:  [https://github.com/QingdaoU/OnlineJudgeDeploy/tree/2.0](https://github.com/QingdaoU/OnlineJudgeDeploy/tree/2.0)
-
-## Documents
-
-[http://opensource.qduoj.com/](http://opensource.qduoj.com/)
+Follow me: https://github.com/xuxuxuxuxuxjh/OnlineJudge/blob/main/OnlineJudge%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97.md
 
 ## Screenshots
 
