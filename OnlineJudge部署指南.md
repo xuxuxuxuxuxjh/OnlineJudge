@@ -443,7 +443,6 @@ rm -rf node_modules
 
 ## 参考资源
 
-- [OnlineJudge官方文档](http://opensource.qduoj.com/)
 - [Docker官方文档](https://docs.docker.com/)
 - [WSL官方文档](https://docs.microsoft.com/en-us/windows/wsl/)
 

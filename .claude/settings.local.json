@@ -2,7 +2,8 @@
   "permissions": {
     "allow": [
       "Bash(cat:*)",
-      "Read(//mnt/c/Users/wyb/Desktop/code/se/**)"
+      "Read(//mnt/c/Users/wyb/Desktop/code/se/**)",
+      "Bash(docker compose:*)"
     ],
     "deny": [],
     "ask": []
