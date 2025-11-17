@@ -30,11 +30,8 @@
 
 ## 安装
 
-请根据此进行安装:  [https://github.com/QingdaoU/OnlineJudgeDeploy/tree/2.0](https://github.com/QingdaoU/OnlineJudgeDeploy/tree/2.0)
+请根据此进行安装:  [https://github.com/xuxuxuxuxuxjh/OnlineJudge/blob/main/OnlineJudge%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97.md](https://github.com/xuxuxuxuxuxjh/OnlineJudge/blob/main/OnlineJudge%E9%83%A8%E7%BD%B2%E6%8C%87%E5%8D%97.md)
 
-## 文档
-
-[http://opensource.qduoj.com/](http://opensource.qduoj.com/)
 
 ## 截图
 
