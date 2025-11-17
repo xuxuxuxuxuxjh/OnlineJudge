@@ -8,26 +8,28 @@ from utils.api import JSONResponse, APIError
 from utils.constants import CONTEST_PASSWORD_SESSION_KEY
 from .models import ProblemPermission
 
-
+# 基础权限类
 class BasePermissionDecorator(object):
     def __init__(self, func):
         self.func = func
 
     def __get__(self, obj, obj_type):
         return functools.partial(self.__call__, obj)
-
+    
+    # 权限不足时返回错误信息
     def error(self, data):
         return JSONResponse.response({"error": "permission-denied", "data": data})
 
+    # 权限检查逻辑
     def __call__(self, *args, **kwargs):
         self.request = args[1]
 
         if self.check_permission():
             if self.request.user.is_disabled:
-                return self.error("Your account is disabled")
-            return self.func(*args, **kwargs)
+                return self.error("Your account is disabled") # 如果用户被禁用，返回错误信息
+            return self.func(*args, **kwargs) # 权限通过，调用原函数
         else:
-            return self.error("Please login first")
+            return self.error("Please login first") # 未登录返回错误信息
 
     def check_permission(self):
         raise NotImplementedError()
@@ -37,19 +39,20 @@ class login_required(BasePermissionDecorator):
     def check_permission(self):
         return self.request.user.is_authenticated
 
-
+# 超级管理员权限
 class super_admin_required(BasePermissionDecorator):
     def check_permission(self):
         user = self.request.user
         return user.is_authenticated and user.is_super_admin()
 
 
+# 管理员
 class admin_role_required(BasePermissionDecorator):
     def check_permission(self):
         user = self.request.user
         return user.is_authenticated and user.is_admin_role()
 
-
+# 问题管理权限
 class problem_permission_required(admin_role_required):
     def check_permission(self):
         if not super(problem_permission_required, self).check_permission():
@@ -58,7 +61,7 @@ class problem_permission_required(admin_role_required):
             return False
         return True
 
-
+# 校验contest密码函数
 def check_contest_password(password, contest_password):
     if not (password and contest_password):
         return False
@@ -139,11 +142,11 @@ def check_contest_permission(check_type="details"):
 def ensure_created_by(obj, user):
     e = APIError(msg=f"{obj.__class__.__name__} does not exist")
     if not user.is_admin_role():
-        raise e
+        raise e # 如果用户不是管理员角色，抛出错误
     if user.is_super_admin():
-        return
+        return # 如果用户是超级管理员，直接返回
     if isinstance(obj, Problem):
         if not user.can_mgmt_all_problem() and obj.created_by != user:
-            raise e
+            raise e # 如果用户没有管理所有问题的权限，且问题不是由该用户创建，抛出错误
     elif obj.created_by != user:
-        raise e
+        raise e # 如果对象不是由该用户创建，抛出错误
