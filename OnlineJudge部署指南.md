@@ -153,6 +153,8 @@ docker ps -a
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
 sudo apt install nodejs -y
 
+> 可能会出现提醒 DEPRECATION WARNING Node.js 18.x is no longer actively supported! 但对于这个项目来说Node.js 18足够了。
+
 # 验证安装
 node --version  # 应该显示 v18.x.x
 npm --version   # 应该显示 10.x.x
