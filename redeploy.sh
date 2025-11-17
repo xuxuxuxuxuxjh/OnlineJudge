@@ -60,7 +60,7 @@ if [ "$DEPLOY_MODE" = "1" ] || [ "$DEPLOY_MODE" = "3" ]; then
     # 检查 node_modules
     if [ ! -d "node_modules" ]; then
         echo "安装依赖..."
-        yarn install --legacy-peer-deps
+        yarn install --legacy-peer-deps --ignore-scripts
     fi
 
     # 设置环境变量
@@ -68,6 +68,7 @@ if [ "$DEPLOY_MODE" = "1" ] || [ "$DEPLOY_MODE" = "3" ]; then
 
     # 构建
     echo "构建中..."
+    yarn build:dll
     yarn build
 
     if [ ! -d "dist" ]; then

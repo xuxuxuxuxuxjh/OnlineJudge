@@ -199,6 +199,8 @@ yarn build
 ls -la dist/
 ```
 
+> ⚠️ 如果你从压缩包而不是 Git 仓库部署，请确保使用 2025-11-18 之后的代码（`frontend/config/dev.env.js` 已内置兜底），否则 `git rev-parse HEAD` 会失败并中止构建。
+
 成功后应该看到：
 ```
 dist/

@@ -112,6 +112,7 @@ git push
 ```
 
 ✅ **自动触发**：`deploy-frontend.yml` （3-5 分钟）
+> ⚠️ 该 workflow 内部会先 `npm run build:dll` 再 `npm run build`，无需手动补这个步骤。
 
 ---
 

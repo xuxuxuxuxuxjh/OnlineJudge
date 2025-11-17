@@ -175,8 +175,8 @@ git push
 |------|------|---------|
 | 📦 Checkout code | 拉取代码 | 5s |
 | 🔧 Setup Node.js | 配置 Node.js 环境 | 10s |
-| 📦 Install dependencies | 安装前端依赖 | 2-5min |
-| 🏗️ Build frontend | 构建前端 | 1-3min |
+| 📦 Install dependencies | 安装前端依赖（包含 `npm run build:dll` 所需包） | 2-5min |
+| 🏗️ Build frontend | 顺序执行 `npm run build:dll` 和 `npm run build` | 1-3min |
 | 📦 Package project | 打包项目 | 10s |
 | 📤 Upload to server | 上传到服务器 | 30s-2min |
 | 🚀 Deploy on server | 服务器部署 | 10-15min |
@@ -269,6 +269,7 @@ jobs:
         working-directory: ./frontend
         run: |
           yarn install --legacy-peer-deps
+          NODE_OPTIONS=--openssl-legacy-provider yarn build:dll
           NODE_OPTIONS=--openssl-legacy-provider yarn build
 
       - name: 📤 Deploy frontend
@@ -295,6 +296,14 @@ jobs:
 ---
 
 ## 故障排查
+
+### 问题 0: 浏览器报 `vendor_xxx_dll is not defined`
+
+**原因**：前端构建时跳过了 `npm run build:dll`，或 workflow 被修改未包含该步骤。
+
+**解决方案**：
+1. 确保 workflow 中的构建步骤依次执行 `npm run build:dll` 和 `npm run build`。
+2. 若临时在服务器手动构建，也必须保持相同顺序，并在构建完后重新上传整个 `frontend/dist`。
 
 ### 问题 1: SSH 连接失败
 
